@@ -63,6 +63,10 @@ map_cnt = 0
 alp_py_map = {}  # 字母、拼音映射表
 divsion_map = {}   # 偏旁拆分映射表
 
+file_org = "./requirements.txt"
+file_org_add = "./org_add.txt"
+file_ans = "./ans.txt"
+
 
 class Word:
     def __init__(self, word):
@@ -131,6 +135,41 @@ class Word:
         return sensitive_word
 
 
+class Check:
+    def __init__(self):
+        # 记录读取到了多少个敏感词
+        self.word_cnt = 0
+        # 记录敏感词原型
+        self.original_word = []
+        # 记录敏感词的所有变形
+        self.sensitive_word = []
+
+    def read_words(self):
+        try:
+            with open(file_org, 'r+', encoding='utf-8') as org:
+                words = org.readlines()
+                for word in words:
+                    word = word.replace('\r', '').replace('\n', '')
+                    # 保存敏感词的原型
+                    self.original_word.append(word)
+                    word = Word(word)
+                    # 获取敏感词的所有可能形态
+                    deformations = word.produce_sensitive_word()
+                    # 将所有变形与数字集合建立映射关系，记录其对应第几个敏感词
+                    for deformation in deformations:
+                        word_list = []
+                        for each in deformation:
+                            if each in alp_py_map:
+                                word_list.append(alp_py_map[each])
+                            elif each in divsion_map:
+                                word_list.append(divsion_map[each])
+                        self.sensitive_word.append([word_list, self.word_cnt])
+                    self.word_cnt += 1
+                # print(self.sensitive_word)
+        except OSError as reason:
+            print('敏感词文件出错了\n错误的原因是：' + str(reason))
+
+
 def init_map():
     global map_cnt
     for letter in ALPHABET:
@@ -152,16 +191,8 @@ def main():
     # except OSError as reason:
     #     print('文件出错了\n错误的原因是：' + str(reason))
     init_map()
-    try:
-        with open('./requirements.txt', 'r+', encoding='utf-8') as words:
-            lines = words.readlines()
-            for line in lines:
-                line = line.replace('\r', '').replace('\n', '')
-                tmp = Word(line)
-                senstive_word = tmp.produce_sensitive_word()
-                print(senstive_word)
-    except OSError as reason:
-        print('文件出错了\n错误的原因是：' + str(reason))
+    checker = Check()
+    checker.read_words()
 
 
 if __name__ == '__main__':
